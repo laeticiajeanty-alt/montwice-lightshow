@@ -1,0 +1,2812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TWICE Montréal Light Project</title>
+
+  <style>
+    html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #89CFF0, #FFB6C1);
+    color: white;
+    font-family: Comic Sans MS;
+
+    display: flex;
+    justify-content: center; /* horizontal centering */
+    align-items: center;     /* vertical centering */
+    }
+
+    .container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;  
+    align-items: center;
+    text-align: center;
+    padding: 60px 30px;  /* 👈 gives top breathing room */
+    box-sizing: border-box;
+    }
+
+    .card {
+    background: rgba(255, 255, 255, 0.15); /* frosted glass */
+    backdrop-filter: blur(10px);
+    padding: 25px 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0; /* some space above and below */
+    }
+
+    .card select, .card button {
+    width: 80%;
+    margin: 8px 0;
+    }
+
+    .card button {
+    background: hotpink;
+    color: white;
+    font-size: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    }
+    select, button {
+      padding: 12px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      background: hotpink;
+      color: white;
+      cursor: pointer;
+    }
+
+    .instructions {
+      max-width: 500px;
+      margin: 20px auto;
+      font-size: 14px;
+      opacity: 0.85;
+    }
+    
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>💖 Projet Illuminate TWICE Project 💖</h1>
+    <p>Choisissez votre siège pour obtenir la couleur de votre lumière!
+        <br>
+        Select your seat to obtain your colour
+    </p>
+    
+    <!-- Card only around dropdowns and button -->
+    <div class="card">
+      <h3>Instructions</h3>
+      1. Saisissez votre section ainsi que votre rangée et votre siège si applicable. C'est important que ce soit exact. 
+      <br>
+      2. Téléchargez votre couleur.
+      <br>
+      3. Augmentez la luminosité de votre cellulaire au maximum.
+      <br>
+      4. Levez votre cellulaire en montrant votre écran lorsqu'on vous demande de montrer vos couleur!
+      <br>
+
+      <p>Section*</p>
+      <select id="section">
+        <option value="" disabled selected>Choose a section</option>
+      </select>
+
+      <p>Rangée/Row*</p>
+        <select id="row" disabled>
+        <option value="" disabled selected>Choose a row</option>
+        </select>
+
+      <p>Siège/Seat*</p>
+        <select id="seat" disabled>
+        <option value="" disabled selected>Choose a seat</option>
+        </select>
+
+      <br>
+      <button onclick="downloadColor()">Download My Colour</button>
+    </div>
+    <div class="lightstick instructions">
+        <p> Vous pouvez également utiliser votre lightstick à la place de votre cellulaire, tant que c'est la même couleur!💡</p>
+    </div>
+
+    <div class="Issues/Inquiries">
+        <p> Questions/Issues?: Veuillez contacter @twicemontreal sur Instagram</p>
+    </div>
+    <div class="preview" id="colorPreview"></div>
+  </div>
+
+<script>
+/* =========================
+   Helper function to add options
+========================= */
+function addOption(select, value){
+  const opt = document.createElement("option");
+  opt.value = value;
+  opt.textContent = value;
+  select.appendChild(opt);
+}
+
+const sectionSelect = document.getElementById("section");
+const rowSelect = document.getElementById("row");
+const seatSelect = document.getElementById("seat");
+const previewDiv = document.getElementById("colorPreview");
+
+/* =========================
+   1️⃣ Generate Sections
+========================= */
+/* GA Sections */
+addOption(sectionSelect, "GA1");
+addOption(sectionSelect, "GA2");
+// 100 Level
+for(let i=101;i<=124;i++) addOption(sectionSelect,i);
+// 200 Level - Club Desjardins
+for(let i=201;i<=224;i++) addOption(sectionSelect,i);
+// 300 Level
+for(let i=301;i<=336;i++) addOption(sectionSelect,i);
+// 400 Level
+for(let i=401;i<=436;i++) addOption(sectionSelect,i);
+
+/* =========================
+   2️⃣ Generate Rows
+========================= */
+
+// Helper function for 100 level single-letter rows
+function generateLetterRows(start, end, skipLetters = []) {
+  const rows = [];
+  let startCode = start.charCodeAt(0);
+  let endCode = end.charCodeAt(0);
+
+  for (let i = startCode; i <= endCode; i++) {
+    const letter = String.fromCharCode(i);
+    if (skipLetters.includes(letter)) continue; // skip unwanted letters
+    rows.push(letter);
+  }
+  return rows;
+}
+
+// 100 Level: AA-FF + A-W, skip I and Q
+const rowsAA_FF = generateLetterRows('A','F', ['I','Q']).map(r => r + r);
+const rowsA_W = generateLetterRows('A','W', ['I','Q']);
+const lowerLevelRows = [...rowsAA_FF, ...rowsA_W];
+
+// 200 Level: 1-6
+const clubRows = [];
+for(let i=1;i<=6;i++) clubRows.push(String(i));
+
+// 300/400 Level: 1-20
+const upperRows = [];
+for(let i=1;i<=20;i++) upperRows.push(String(i));
+
+// Floor rows: A-Z + AA-ZZ (~50), skip I and Q
+const validLetters = generateLetterRows('A','Z', ['I','Q']);
+const floorRows = [...validLetters]; // single letters
+validLetters.forEach(l1 => {
+  validLetters.forEach(l2 => {
+    floorRows.push(l1 + l2); // double letters
+  });
+});
+
+/* =========================
+   3️⃣ Generate Seats
+========================= */
+// Use 1-29 as default
+const seats = [];
+for(let i=1;i<=29;i++) seats.push(String(i));
+
+/* =========================
+   4️⃣ Populate row & seat dropdowns dynamically
+========================= */
+function populateRowsAndSeats(){
+  const section = sectionSelect.value;
+
+  // Clear old options
+  rowSelect.innerHTML = "";
+  seatSelect.innerHTML = "";
+
+  /* 🎀 GA EXCEPTION */
+  if (section === "GA1" || section === "GA2") {
+    rowSelect.style.display = "none";
+    seatSelect.style.display = "none";
+    updatePreview();
+    return;
+  }
+
+  // Show row and seat dropdowns
+  rowSelect.style.display = "inline-block";
+  seatSelect.style.display = "inline-block";
+
+  // Decide which row set to use
+  let rows = [];
+  if (section >= 101 && section <= 124) rows = lowerLevelRows || [];
+  else if (section >= 201 && section <= 224) rows = clubRows || [];
+  else if ((section >= 301 && section <= 336) || (section >= 401 && section <= 436)) rows = upperRows || [];
+  else if (section >= 501) rows = floorRows || [];
+
+  // Add default "Choose a row" for rows
+  const defaultRow = document.createElement("option");
+  defaultRow.value = "";
+  defaultRow.text = "Choose a row";
+  defaultRow.disabled = true;
+  defaultRow.selected = true;
+  rowSelect.appendChild(defaultRow);
+
+  // Add actual rows
+  rows.forEach(r => addOption(rowSelect, r));
+
+  // Seats (always same)
+  const defaultSeat = document.createElement("option");
+  defaultSeat.value = "";
+  defaultSeat.text = "Choose a seat";
+  defaultSeat.disabled = true;
+  defaultSeat.selected = true;
+  seatSelect.appendChild(defaultSeat);
+
+  seats.forEach(s => addOption(seatSelect, s));
+
+  updatePreview();
+}
+
+/* =========================
+   5️⃣ Color logic based on Section, Row, + Seat
+========================= */
+function getColor(section, row, seat){
+  /* 🎀 GA EXCEPTION FIRST */
+  if(section === "GA1") return "#EF820D"; // GA1 Orange
+  if(section === "GA2") return "#fe019a"; // GA2 Hot Pink
+ 
+  // Normalize row & convert numeric values
+  row = row.trim().toUpperCase(); // fixes dropdown issues
+  section = parseInt(section);  // "101" -> 101
+  seat = parseInt(seat);        // "1" -> 1
+
+  // 100 Level
+
+  //Section 101 - 124
+    if (section >=101 && section <=124) {
+
+        if (section === 101) {
+
+        // Rows AA, BB, CC → seats 1–19 = #EF820D (Orange)
+        if ((row === "AA" || row === "BB" || row === "CC") && seat >= 1 && seat <= 19) {
+            return "#EF820D";
+        }
+
+        // Rows DD, EE, FF → seats 1–19 = #E81933 (Red)
+        if ((row === "DD" || row === "EE" || row === "FF") && seat >= 1 && seat <= 19) {
+            return "#E81933";
+        }
+       
+            // Row A, seats 1–12 (Momo)
+        if (row === "A" && seat >= 1 && seat <= 12) {
+            return "#fe019a"; // Hot Pink
+        }
+
+        // Row B or C, seats 1–18 (Momo pt. 2)
+        else if (["B","C"].includes(row) && seat >= 1 && seat <= 18) {
+            return "#fe019a"; // Hot Pink
+        }
+
+        // Row D, E, F (Sana)
+        else if (["D","E","F"].includes(row)) {
+            if ((seat >= 1 && seat <= 6) || (seat >= 12 && seat <= 18)) {
+                return "#7600bc"; // Purple
+            } 
+            else if (seat >= 7 && seat <= 11) {
+                return "#FFFFFF"; // White
+            }
+        }
+
+        // Rows G, H, J (Tzuyu)
+        else if (["G","H","J"].includes(row)) {
+            if ((seat >= 1 && seat <= 6) || (seat >= 12 && seat <= 18)) {
+                return "#0014A8"; // Dark Blue
+            } 
+            else if (seat >= 7 && seat <= 11) {
+                return "#FFFFFF"; // White
+            }
+        }
+
+        // Rows K, L, M (Nayeon)
+        else if (["K","L","M"].includes(row)) {
+            if ((seat >= 1 && seat <= 6) || (seat >= 12 && seat <= 18)) {
+                return "#728FCE"; // Light Blue
+            } 
+            else if (seat >= 7 && seat <= 11) {
+                return "#FFFFFF"; // White
+            }
+        }
+
+        // Rows N, O, P (Mina)
+        else if (["N","O","P"].includes(row)) {
+            if (seat >= 1 && seat <= 12) {
+                return "#40e0d0"; // Turquoise
+            }
+        }
+
+        // Rows R, S, T (Jeongyeon pt 1)
+        else if (["R","S","T"].includes(row)) {
+            if (seat >= 1 && seat <= 12) {
+                return "#00FF7F"; // Spring Green
+            }
+        }
+
+        // Rows U, V(Jeongyeon pt 2)
+        else if (["U","V"].includes(row)) {
+            if (seat >= 1 && seat <= 16) {
+                return "#00FF7F"; // Spring Green
+            }
+        }
+
+        // Row W (JY pt. 3)
+        else if (row === "W") {
+            if (seat >= 1 && seat <= 20) {
+                return "#00FF7F"; // Spring Green
+            }
+        }
+
+
+            } // <- closes 101 section
+        // Section 102
+            else if(section === 102){
+
+            // Rows AA, BB, CC
+            if(["AA","BB"].includes(row)){
+                if(seat >=1 && seat <=8) return "#FDB3A5"; // light pink
+                else if(seat >=9 && seat <=15) return "#FF8C00"; // orange
+            }
+            else if(row === "CC"){
+                if(seat >=1 && seat <=15) return "#FF8C00"; // orange
+            }
+
+            // Rows DD, EE, FF
+            else if(["DD","EE","FF"].includes(row)){
+                if(seat >=1 && seat <=15) return "#E81933"; // red
+            }
+
+            // Rows A, B, C
+            else if(["A","B","C"].includes(row)){
+                if(seat >=1 && seat <=16) return "#fe019a"; // hot pink
+            }
+
+            // Row D
+            else if(row === "D"){
+                if((seat >=1 && seat <=4) || (seat >=15 && seat <=16)) return "#7600bc"; // purple
+                else if(seat >=5 && seat <=14) return "#FFFFFF"; // white
+            }
+
+            // Row E
+            else if(row === "E"){
+                if((seat >=1 && seat <=3) || (seat >=15 && seat <=16)) return "#7600bc"; // purple
+                else if(seat >=4 && seat <=14) return "#FFFFFF"; // white
+            }
+
+            // Row F
+            else if(row === "F"){
+                if((seat >=1 && seat <=2) || (seat >=15 && seat <=16)) return "#7600bc"; // purple
+                else if(seat >=3 && seat <=14) return "#FFFFFF"; // white
+            }
+
+            // Rows G, H, J
+            else if(["G","H","J"].includes(row)){
+                if(seat === 1 || seat === 2 || (seat >=7 && seat <=16)) return "#0014A8"; // dark blue
+                else if(seat >=3 && seat <=6) return "#FFFFFF"; // white
+            }
+
+            // Row K
+            else if(row === "K"){
+                if(seat ===1 || seat ===2 || seat ===14 || seat ===15) return "#728FCE"; // light blue
+                else if(seat >=3 && seat <=13) return "#FFFFFF"; // white
+            }
+
+            // Row L
+            else if(row === "L"){
+                if(seat >=1 && seat <=3 || seat ===14 || seat ===15) return "#728FCE";
+                else if(seat >=4 && seat <=13) return "#FFFFFF";
+            }
+
+            // Row M
+            else if(row === "M"){
+                if(seat >=1 && seat <=4 || seat ===14 || seat ===15) return "#728FCE";
+                else if(seat >=5 && seat <=13) return "#FFFFFF";
+            }
+
+            // Rows N, O, P
+            else if(["N","O","P"].includes(row)){
+                if(seat >=1 && seat <=10) return "#40e0d0"; // turquoise
+            }
+
+            // Rows R, S, T
+            else if(["R","S","T"].includes(row)){
+                if(seat >=1 && seat <=10) return "#00FF7F"; // spring green
+            }
+
+            // Rows U, V
+            else if(["U","V"].includes(row)){
+                if(seat >=1 && seat <=14) return "#00FF7F";
+            }
+
+            // Row W
+            else if(row === "W"){
+                if(seat >=1 && seat <=18) return "#00FF7F";
+            }
+
+            } // closes section 102
+
+        // Section 103
+            else if(section === 103){
+                // Row CC
+                if(row === "CC"){
+                    if(seat >=1 && seat <=12) return "#EF820D";
+                }
+
+                // Row DD
+                else if(row === "DD"){
+                    if(seat >=1 && seat <=12) return "#E81933";
+                }
+
+                // Rows EE, FF
+                else if(["EE","FF"].includes(row)){
+                    if(seat >=1 && seat <=13) return "#E81933";
+                }
+
+                // Rows A, B, C
+                else if(["A","B","C"].includes(row)){
+                    if(seat >=1 && seat <=14) return "#fe019a";
+                }
+
+                // Rows D, E
+                else if(["D","E"].includes(row)){
+                    if((seat >=1 && seat <=2) || seat ===14 || seat ===15)
+                        return "#7600bc";
+                    else if(seat >=3 && seat <=13)
+                        return "#FFFFFF";
+                }
+
+                // Row F
+                else if(row === "F"){
+                    if(seat ===1 || seat ===2 || (seat >=7 && seat <=15))
+                        return "#7600bc";
+                    else if(seat >=3 && seat <=6)
+                        return "#FFFFFF";
+                }
+
+                // Row G
+                else if(row === "G"){
+                    if(seat ===1 || seat ===2 || (seat >=13 && seat <=15))
+                        return "#0014A8";
+                    else if(seat >=3 && seat <=12)
+                        return "#FFFFFF";
+                }
+
+                // Row H
+                else if(row === "H"){
+                    if(seat ===1 || seat ===2 || (seat >=14 && seat <=16))
+                        return "#0014A8";
+                    else if(seat >=3 && seat <=13)
+                        return "#FFFFFF";
+                }
+
+                // Row J
+                else if(row === "J"){
+                    if(seat ===1 || seat ===2 || (seat >=7 && seat <=16))
+                        return "#0014A8";
+                    else if(seat >=3 && seat <=6)
+                        return "#FFFFFF";
+                }
+
+                // Row K
+                else if(row === "K"){
+                    if(seat ===1 || seat ===2 || (seat >=7 && seat <=16))
+                        return "#728FCE";
+                    else if(seat >=3 && seat <=6)
+                        return "#FFFFFF";
+                }
+
+                // Rows L, M
+                else if(["L","M"].includes(row)){
+                    if(seat ===1 || seat ===2 || (seat >=14 && seat <=16))
+                        return "#728FCE";
+                    else if(seat >=3 && seat <=13)
+                        return "#FFFFFF";
+                }
+
+                // Rows N, O
+                else if(["N","O"].includes(row)){
+                    if(seat >=1 && seat <=11)
+                        return "#40e0d0";
+                }
+
+                // Row P
+                else if(row === "P"){
+                    if(seat >=1 && seat <=12)
+                        return "#40e0d0";
+                }
+
+                // Rows R, S, T
+                else if(["R","S","T"].includes(row)){
+                    if(seat >=1 && seat <=12)
+                        return "#00FF7F";
+                }
+
+                // Rows U, V
+                else if(["U","V"].includes(row)){
+                    if(seat >=1 && seat <=17)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if(row === "W"){
+                    if(seat >=1 && seat <=22)
+                        return "#00FF7F";
+                }
+
+             } // End of Section 103
+
+        //Section 104
+             else if(section === 104){
+                // Row CC
+                if(row === "CC"){
+                    if(seat >=1 && seat <=3) return "#EF820D";
+                }
+
+                // Rows DD, EE
+                else if(["DD","EE"].includes(row)){
+                    if(seat >=1 && seat <=3) return "#E81933";
+                }
+
+                // Row FF
+                else if(row === "FF"){
+                    if(seat >=1 && seat <=12) return "#E81933";
+                }
+
+                // Rows A, B, C
+                else if(row === "A"){
+                    if(seat >=1 && seat <=12) return "#fe019a";
+                }
+                else if(row === "B"){
+                    if(seat >=1 && seat <=14) return "#fe019a";
+                }
+                else if(row === "C"){
+                    if(seat >=1 && seat <=15) return "#fe019a";
+                }
+                
+                // Rows D, E, F
+                else if(row === "D"){
+                    if(seat >=1 && seat <=15) return "#7600bc";
+                }
+                else if(row === "E"){
+                    if(seat >=1 && seat <=16) return "#7600bc";
+                }
+                else if(row === "F"){
+                    if(seat >=1 && seat <=17) return "#7600bc";
+                }
+
+                // Rows G, H, J
+                else if(row === "G"){
+                    if(seat >=1 && seat <=17) return "#0014A8";
+                }
+                else if(row === "H"){
+                    if(seat >=1 && seat <=18) return "#0014A8";
+                }
+                else if(row === "J"){
+                    if(seat >=1 && seat <=19) return "#0014A8";
+                }
+
+                 // Rows K, L, M
+                else if(row === "K"){
+                    if(seat >=1 && seat <=19) return "#728FCE";
+                }
+                else if(row === "L"){
+                    if(seat >=1 && seat <=20) return "#728FCE";
+                }
+                else if(row === "M"){
+                    if(seat >=1 && seat <=20) return "#728FCE";
+                }
+
+                // Rows N, O, P
+                else if(["N","O"].includes(row)){
+                    if(seat >=1 && seat <=16) return "#40e0d0";
+                }
+                else if(row === "P"){
+                    if(seat >=1 && seat <=17) return "#40e0d0";
+                }
+
+                // Rows R, S, T
+                else if(["R","S"].includes(row)){
+                    if(seat >=1 && seat <=18) return "#00FF7F";
+                }
+                else if(row === "T"){
+                    if(seat >=1 && seat <=19) return "#00FF7F";
+                }
+
+                // Rows U, V, W
+                else if(row === "U"){
+                    if(seat >=1 && seat <=22) return "#00FF7F";
+                }
+                else if(row === "V"){
+                    if(seat >=1 && seat <=25) return "#00FF7F";
+                }
+                else if(row === "W"){
+                    if(seat >=1 && seat <=29) return "#00FF7F";
+                }
+             } // End of Section 104
+
+        // Section 105
+        else if (section == 105){
+            // Row FF
+            if(row === "FF"){
+                if(seat >=1 && seat <=9) return "#E81933";
+            }
+
+            // Rows A, B, C
+            else if(row === "A"){
+                if(seat >=1 && seat <=10) return "#fe019a";
+            }
+            else if(["B","C"].includes(row)){
+                if(seat >=1 && seat <=11) return "#fe019a";
+            }
+
+            // Rows D, E, F
+            else if(row === "D"){
+                if(seat >=1 && seat <=12) return "#7600bc";
+            }
+            else if(["E","F"].includes(row)){
+                if(seat >=1 && seat <=13) return "#7600bc";
+            }
+
+            // Rows G, H, J
+            else if(row === "G"){
+                if(seat >=1 && seat <=14) return "#0014A8";
+            }
+            else if(row === "H"){
+                if(seat >=1 && seat <=15) return "#0014A8";
+            }
+            else if(row === "J"){
+                if(seat >=1 && seat <=16) return "#0014A8";
+            }
+
+            // Rows K, L, M
+            else if(row === "K"){
+                if(seat >=1 && seat <=16) return "#728FCE";
+            }
+            else if(["L","M"].includes(row)){
+                if(seat >=1 && seat <=17) return "#728FCE";
+            }
+
+            // Rows N, O, P
+            else if(["N","O","P"].includes(row)){
+                if(seat >=1 && seat <=12) return "#40e0d0";
+            }
+
+            // Rows R, S
+            else if(["R","S"].includes(row)){
+                if(seat >=1 && seat <=16) return "#00FF7F";
+            }
+
+            // Rows T, U
+            else if(["T","U"].includes(row)){
+                if(seat >=1 && seat <=17) return "#00FF7F";
+            }
+
+            // Row V
+            else if(row === "V"){
+                if(seat >=1 && seat <=24) return "#00FF7F";
+            }
+
+            // Row W
+            else if(row === "W"){
+                if(seat >=1 && seat <=27) return "#00FF7F";
+            }
+        } // End of Section 105
+
+        // Section 106
+        else if (section === 106){
+            // Row FF
+            if (row === "FF") {
+                if (seat >= 1 && seat <= 9) return "#E81933";
+            }
+
+            // Rows A, B, C
+            else if (row === "A") {
+                if (seat >= 1 && seat <= 11) return "#fe019a";
+            }
+            else if (row === "B") {
+                if (seat >= 1 && seat <= 13) return "#fe019a";
+            }
+            else if (row === "C") {
+                if (seat >= 1 && seat <= 14) return "#fe019a";
+            }
+
+            // Rows D, E
+            else if (["D","E"].includes(row)) {
+                if ((seat >= 1 && seat <= 3) || seat === 14 || seat === 15) {
+                    return "#7600bc";
+                } 
+                else if (seat >= 4 && seat <= 13) {
+                    return "#FFFFFF";
+                }
+            }
+
+            // Row F
+            else if (row === "F") {
+                if ((seat >= 1 && seat <= 3) || seat === 15 || seat === 16) {
+                    return "#7600bc";
+                } 
+                else if (seat >= 4 && seat <= 14) {
+                    return "#FFFFFF";
+                }
+            }
+
+            // Row G
+            else if (row === "G") {
+                if ((seat >= 1 && seat <= 3) || (seat >= 8 && seat <= 17)) {
+                    return "#0014A8";
+                } 
+                else if (seat >= 4 && seat <= 7) {
+                    return "#FFFFFF";
+                }
+            }
+
+            // Row H
+            else if (row === "H") {
+                if ((seat >= 1 && seat <= 4) || (seat >= 9 && seat <= 18)) {
+                    return "#0014A8";
+                } 
+                else if (seat >= 5 && seat <= 8) {
+                    return "#FFFFFF";
+                }
+            }
+
+            // Row J
+            else if (row === "J") {
+                if ((seat >= 1 && seat <= 4) || (seat >= 9 && seat <= 19)) {
+                    return "#0014A8";
+                } 
+                else if (seat >= 5 && seat <= 8) {
+                    return "#FFFFFF";
+                }
+            }
+
+            // Row K
+            else if (row === "K") {
+                if ((seat >= 1 && seat <= 4) || (seat >= 9 && seat <= 19)) {
+                    return "#728FCE";
+                } 
+                else if (seat >= 5 && seat <= 8) {
+                    return "#FFFFFF";
+                }
+            }
+
+            // Rows L, M
+            else if (["L","M"].includes(row)) {
+                if ((seat >= 1 && seat <= 4) || (seat >= 9 && seat <= 20)) {
+                    return "#728FCE";
+                } 
+                else if (seat >= 5 && seat <= 8) {
+                    return "#FFFFFF";
+                }
+            }
+
+                // Rows N, O
+                else if (["N","O"].includes(row)) {
+                    if (seat >= 1 && seat <= 16) return "#40e0d0";
+                }
+
+                // Row P
+                else if (row === "P") {
+                    if (seat >= 1 && seat <= 17) return "#40e0d0";
+                }
+
+                // Rows R, S
+                else if (["R","S"].includes(row)) {
+                    if (seat >= 1 && seat <= 18) return "#00FF7F";
+                }
+
+                // Row T
+                else if (row === "T") {
+                    if (seat >= 1 && seat <= 19) return "#00FF7F";
+                }
+
+                // Row U
+                else if (row === "U") {
+                    if (seat >= 1 && seat <= 20) return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 27) return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 29) return "#00FF7F";
+                }
+            } // End of Section 106
+        //Section 107
+            else if (section === 106){
+                // Rows B, C
+                if (["B","C"].includes(row)) {
+                    if (seat >= 1 && seat <= 17) return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 9) || (seat >= 12 && seat <= 18)) {
+                        return "#7600bc";
+                    } 
+                    else if (seat === 10 || seat === 11) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 7) || (seat >= 13 && seat <= 18)) {
+                        return "#7600bc";
+                    } 
+                    else if (seat >= 8 && seat <= 12) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if ((seat >= 1 && seat <= 6) || (seat >= 15 && seat <= 19)) {
+                        return "#7600bc";
+                    } 
+                    else if (seat >= 7 && seat <= 14) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 16 && seat <= 19)) {
+                        return "#0014A8";
+                    } 
+                    else if (seat >= 5 && seat <= 15) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 18 && seat <= 20)) {
+                        return "#0014A8";
+                    } 
+                    else if (seat >= 4 && seat <= 17) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 2 || seat === 19 || seat === 20) {
+                        return "#0014A8";
+                    } 
+                    else if (seat >= 3 && seat <= 18) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat === 1 || seat === 2 || seat === 19 || seat === 20) {
+                        return "#728FCE";
+                    } 
+                    else if (seat >= 3 && seat <= 18) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row L
+                else if (row === "L") {
+                    if ((seat >= 1 && seat <= 3) || seat === 11 || (seat >= 19 && seat <= 21)) {
+                        return "#728FCE";
+                    } 
+                    else if ((seat >= 4 && seat <= 10) || (seat >= 12 && seat <= 18)) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row M
+                else if (row === "M") {
+                    if ((seat >= 1 && seat <= 5) || (seat >= 10 && seat <= 12) || (seat >= 17 && seat <= 21)) {
+                        return "#728FCE";
+                    } 
+                    else if ((seat >= 6 && seat <= 9) || (seat >= 13 && seat <= 16)) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row)) {
+                    if (seat >= 1 && seat <= 14) return "#40e0d0";
+                }
+
+                // Row R
+                else if (row === "R") {
+                    if (seat >= 1 && seat <= 18) return "#00FF7F";
+                }
+
+                // Rows S, T
+                else if (["S","T"].includes(row)) {
+                    if (seat >= 1 && seat <= 19) return "#00FF7F";
+                }
+
+                // Row U
+                else if (row === "U") {
+                    if (seat >= 1 && seat <= 20) return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 26) return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 29) return "#00FF7F";
+                } 
+            }// End of 107
+
+        // Section 108
+            else if (section === 108){
+                // Row FF
+                if (row === "FF") {
+                    if (seat >= 3 && seat <= 11) return "#E81933";
+                }
+
+                // Rows A, B, C
+                else if (row === "A") {
+                    if (seat >= 3 && seat <= 13) return "#fe019a";
+                }
+                else if (row === "B") {
+                    if (seat >= 1 && seat <= 13) return "#fe019a";
+                }
+                else if (row === "C") {
+                    if (seat >= 1 && seat <= 14) return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 6) || (seat >= 11 && seat <= 15)) {
+                        return "#7600bc";
+                    } 
+                    else if (seat >= 7 && seat <= 10) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 5) || (seat >= 12 && seat <= 15)) {
+                        return "#7600bc";
+                    } 
+                    else if (seat >= 6 && seat <= 11) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 14 && seat <= 16)) {
+                        return "#7600bc";
+                    } 
+                    else if (seat >= 5 && seat <= 13) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if ((seat >= 1 && seat <= 3) || seat === 9 || (seat >= 15 && seat <= 17)) {
+                        return "#0014A8";
+                    } 
+                    else if ((seat >= 4 && seat <= 8) || (seat >= 10 && seat <= 14)) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 8 && seat <= 11) || (seat >= 16 && seat <= 18)) {
+                        return "#0014A8";
+                    } 
+                    else if ((seat >= 4 && seat <= 7) || (seat >= 12 && seat <= 15)) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 13) || seat === 18 || seat === 19) {
+                        return "#0014A8";
+                    } 
+                    else if ((seat >= 3 && seat <= 6) || (seat >= 14 && seat <= 17)) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat === 1 || seat === 2 || (seat >= 8 && seat <= 12) || seat === 18 || seat === 19) {
+                        return "#728FCE";
+                    } 
+                    else if ((seat >= 3 && seat <= 7) || (seat >= 13 && seat <= 17)) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat === 1 || seat === 2 || (seat >= 8 && seat <= 13) || seat === 19 || seat === 20) {
+                        return "#728FCE";
+                    } 
+                    else if ((seat >= 3 && seat <= 7) || (seat >= 14 && seat <= 18)) {
+                        return "#FFFFFF";
+                    }
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row)) {
+                    if (seat >= 1 && seat <= 16) return "#40e0d0";
+                }
+
+                // Row P
+                else if (row === "P") {
+                    if (seat >= 1 && seat <= 17) return "#40e0d0";
+                }
+
+                // Rows R, S
+                else if (["R","S"].includes(row)) {
+                    if (seat >= 1 && seat <= 18) return "#00FF7F";
+                }
+
+                // Row T
+                else if (row === "T") {
+                    if (seat >= 1 && seat <= 19) return "#00FF7F";
+                }
+
+                // Row U
+                else if (row === "U") {
+                    if (seat >= 1 && seat <= 20) return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 28) return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 29) return "#00FF7F";
+                }
+            } // End of Section 108
+        
+        // Section 109
+            else if (section === 109){
+                // Row FF
+                if (row === "FF") {
+                    if (seat >= 1 && seat <= 9) return "#E81933";
+                }
+
+                // Rows A, B, C
+                else if (row === "A") {
+                    if (seat >= 1 && seat <= 10) return "#fe019a";
+                }
+                else if (["B","C"].includes(row)) {
+                    if (seat >= 1 && seat <= 11) return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if (seat === 1 || seat === 12) return "#7600bc";
+                    else if (seat >= 2 && seat <= 11) return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if (seat === 1 || seat === 13) return "#7600bc";
+                    else if (seat >= 2 && seat <= 12) return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if (seat === 1 || (seat >= 6 && seat <= 13)) return "#7600bc";
+                    else if (seat >= 2 && seat <= 5) return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat === 1 || seat === 13 || seat === 14) return "#0014A8";
+                    else if (seat >= 2 && seat <= 12) return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if (seat === 1 || seat === 2 || (seat >= 13 && seat <= 15)) return "#0014A8";
+                    else if (seat >= 3 && seat <= 12) return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 16)) return "#0014A8";
+                    else if (seat >= 3 && seat <= 6) return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 16)) return "#728FCE";
+                    else if (seat >= 3 && seat <= 6) return "#FFFFFF";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat === 1 || seat === 2 || seat === 16 || seat === 17) return "#728FCE";
+                    else if (seat >= 3 && seat <= 15) return "#FFFFFF";
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row)) {
+                    if (seat >= 1 && seat <= 11) return "#40e0d0";
+                }
+
+                // Row R
+                else if (row === "R") {
+                    if (seat >= 1 && seat <= 15) return "#00FF7F";
+                }
+
+                // Row S
+                else if (row === "S") {
+                    if (seat >= 1 && seat <= 16) return "#00FF7F";
+                }
+
+                // Rows T, U
+                else if (["T","U"].includes(row)) {
+                    if (seat >= 1 && seat <= 17) return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 24) return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 27) return "#00FF7F";
+                }
+            } // End of Section 109
+        // Section 110
+            else if(section === 110){
+                // Rows AA, BB
+                if (["AA","BB"].includes(row)) {
+                    if (seat >= 1 && seat <= 8) return "#EF820D";
+                }
+
+                // Row CC
+                else if (row === "CC") {
+                    if (seat >= 1 && seat <= 9) return "#EF820D";
+                }
+
+                // Row DD
+                else if (row === "DD") {
+                    if (seat >= 1 && seat <= 9) return "#E81933";
+                }
+
+                // Row EE
+                else if (row === "EE") {
+                    if (seat >= 1 && seat <= 10) return "#E81933";
+                }
+
+                // Row FF
+                else if (row === "FF") {
+                    if (seat >= 1 && seat <= 11) return "#E81933";
+                }
+
+                // Rows A, B, C
+                else if (row === "A") {
+                    if (seat >= 1 && seat <= 12) return "#fe019a";
+                }
+                else if (row === "B") {
+                    if (seat >= 1 && seat <= 14) return "#fe019a";
+                }
+                else if (row === "C") {
+                    if (seat >= 1 && seat <= 15) return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if (seat >= 1 && seat <= 15) return "#7600bc";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if (seat >= 1 && seat <= 16) return "#7600bc";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if (seat >= 1 && seat <= 17) return "#7600bc";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat >= 1 && seat <= 17) return "#0014A8";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if (seat >= 1 && seat <= 18) return "#0014A8";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat >= 1 && seat <= 19) return "#0014A8";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat >= 1 && seat <= 19) return "#728FCE";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat >= 1 && seat <= 20) return "#728FCE";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row)) {
+                    if (seat >= 1 && seat <= 16) return "#40e0d0";
+                }
+
+                // Row P
+                else if (row === "P") {
+                    if (seat >= 1 && seat <= 17) return "#40e0d0";
+                }
+
+                // Rows R, S
+                else if (["R","S"].includes(row)) {
+                    if (seat >= 1 && seat <= 18) return "#00FF7F";
+                }
+
+                // Row T
+                else if (row === "T") {
+                    if (seat >= 1 && seat <= 19) return "#00FF7F";
+                }
+
+                // Row U
+                else if (row === "U") {
+                    if (seat >= 1 && seat <= 22) return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 25) return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 29) return "#00FF7F";
+                }
+            } // End of 110
+        //Section 111
+            else if(section === 111){
+                // Rows AA, BB, CC
+                if (["AA","BB","CC"].includes(row)) {
+                    if (seat >= 1 && seat <= 12) return "#EF820D";
+                }
+
+                // Row DD
+                else if (row === "DD") {
+                    if (seat >= 1 && seat <= 12) return "#E81933";
+                }
+
+                // Rows EE, FF
+                else if (["EE","FF"].includes(row)) {
+                    if (seat >= 1 && seat <= 13) return "#E81933";
+                }
+
+                // Rows A, B, C
+                else if (["A","B","C"].includes(row)) {
+                    if (seat >= 1 && seat <= 14) return "#fe019a";
+                }
+
+                // Rows D, E, F
+                else if (["D","E","F"].includes(row)) {
+                    if (seat >= 1 && seat <= 15) return "#7600bc";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat >= 1 && seat <= 15) return "#0014A8";
+                }
+
+                // Rows H, J
+                else if (["H","J"].includes(row)) {
+                    if (seat >= 1 && seat <= 16) return "#0014A8";
+                }
+
+                // Rows K, L, M
+                else if (["K","L","M"].includes(row)) {
+                    if (seat >= 1 && seat <= 16) return "#728FCE";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row)) {
+                    if (seat >= 1 && seat <= 11) return "#40e0d0";
+                }
+
+                // Row P
+                else if (row === "P") {
+                    if (seat >= 1 && seat <= 12) return "#40e0d0";
+                }
+
+                // Rows R, S, T
+                else if (["R","S","T"].includes(row)) {
+                    if (seat >= 1 && seat <= 12) return "#00FF7F";
+                }
+
+                // Rows U, V
+                else if (["U","V"].includes(row)) {
+                    if (seat >= 1 && seat <= 17) return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 21) return "#00FF7F";
+                }
+            } // End of 111
+        //Section 112
+            else if(section === 112){
+                // Rows AA, BB, CC
+                if (["AA","BB","CC"].includes(row)) {
+                    if (seat >= 1 && seat <= 15) return "#EF820D";
+                }
+
+                // Rows DD, EE, FF
+                else if (["DD","EE","FF"].includes(row)) {
+                    if (seat >= 1 && seat <= 15) return "#E81933";
+                }
+
+                // Rows A, B, C
+                else if (["A","B","C"].includes(row)) {
+                    if (seat >= 1 && seat <= 15) return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 6) || (seat >= 10 && seat <= 15))
+                        return "#7600bc";
+                    else if (seat >= 7 && seat <= 9)
+                        return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 5) || (seat >= 11 && seat <= 15))
+                        return "#7600bc";
+                    else if (seat >= 6 && seat <= 10)
+                        return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 12 && seat <= 15))
+                        return "#7600bc";
+                    else if (seat >= 5 && seat <= 11)
+                        return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 13 && seat <= 15))
+                        return "#0014A8";
+                    else if (seat >= 4 && seat <= 12)
+                        return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if ([1,2,14,15].includes(seat))
+                        return "#0014A8";
+                    else if (seat >= 3 && seat <= 13)
+                        return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 15)
+                        return "#0014A8";
+                    else if (seat >= 2 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat === 1 || seat === 15)
+                        return "#728FCE";
+                    else if (seat >= 2 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Row L
+                else if (row === "L") {
+                    if ([1,8,15].includes(seat))
+                        return "#728FCE";
+                    else if ((seat >= 2 && seat <= 7) || (seat >= 9 && seat <= 14))
+                        return "#FFFFFF";
+                }
+
+                // Row M
+                else if (row === "M") {
+                    if ([1,2,14,15].includes(seat) || (seat >= 7 && seat <= 9))
+                        return "#728FCE";
+                    else if ((seat >= 3 && seat <= 6) || (seat >= 10 && seat <= 13))
+                        return "#FFFFFF";
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row)) {
+                    if (seat >= 1 && seat <= 10)
+                        return "#40e0d0";
+                }
+
+                // Rows R, S, T
+                else if (["R","S","T"].includes(row)) {
+                    if (seat >= 1 && seat <= 10)
+                        return "#00FF7F";
+                }
+
+                // Rows U, V
+                else if (["U","V"].includes(row)) {
+                    if (seat >= 1 && seat <= 14)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 18)
+                        return "#00FF7F";
+                }
+
+            }// End of 112
+
+        // Section 113
+            else if(section === 113){
+                // Rows AA, BB, CC → seats 1–18 = #EF820D (Orange)
+                if ((row === "AA" || row === "BB" || row === "CC") && seat >= 1 && seat <= 18) {
+                    return "#EF820D";
+                }
+
+                // Rows DD, EE, FF → seats 1–18 = #E81933 (Red)
+                if ((row === "DD" || row === "EE" || row === "FF") && seat >= 1 && seat <= 18) {
+                    return "#E81933";
+                }
+
+                // Rows A, B
+                if (["A","B"].includes(row)) {
+                    if (seat >= 1 && seat <= 16)
+                        return "#fe019a";
+                }
+
+                // Row C
+                else if (row === "C") {
+                    if (seat >= 1 && seat <= 18)
+                        return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if ([1,2,17,18].includes(seat) || (seat >= 7 && seat <= 11))
+                        return "#7600bc";
+                    else if ((seat >= 3 && seat <= 6) || (seat >= 12 && seat <= 16))
+                        return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ([1,2,17,18].includes(seat) || (seat >= 7 && seat <= 10))
+                        return "#7600bc";
+                    else if ((seat >= 3 && seat <= 6) || (seat >= 11 && seat <= 16))
+                        return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if ([1,2,17,18].includes(seat) || (seat >= 7 && seat <= 9))
+                        return "#7600bc";
+                    else if ((seat >= 3 && seat <= 6) || (seat >= 10 && seat <= 16))
+                        return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if ([1,2,7,8,17,18].includes(seat))
+                        return "#0014A8";
+                    else if ((seat >= 3 && seat <= 6) || (seat >= 9 && seat <= 16))
+                        return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if ([1,2,17,18].includes(seat))
+                        return "#0014A8";
+                    else if (seat >= 3 && seat <= 16)
+                        return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if ([1,2,12,17,18].includes(seat))
+                        return "#0014A8";
+                    else if ((seat >= 3 && seat <= 11) || (seat >= 13 && seat <= 16))
+                        return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if ([1,2,10,11,16,17].includes(seat))
+                        return "#728FCE";
+                    else if ((seat >= 3 && seat <= 9) || (seat >= 12 && seat <= 15))
+                        return "#FFFFFF";
+                }
+
+                // Row L
+                else if (row === "L") {
+                    if ([1,2,16,17].includes(seat) || (seat >= 9 && seat <= 11))
+                        return "#728FCE";
+                    else if ((seat >= 3 && seat <= 8) || (seat >= 12 && seat <= 15))
+                        return "#FFFFFF";
+                }
+
+                // Row M
+                else if (row === "M") {
+                    if ([1,2,16,17].includes(seat) || (seat >= 8 && seat <= 11))
+                        return "#728FCE";
+                    else if ((seat >= 3 && seat <= 7) || (seat >= 12 && seat <= 15))
+                        return "#FFFFFF";
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row)) {
+                    if (seat >= 1 && seat <= 12)
+                        return "#40e0d0";
+                }
+
+                // Rows R, S, T
+                else if (["R","S","T"].includes(row)) {
+                    if (seat >= 1 && seat <= 12)
+                        return "#00FF7F";
+                }
+
+                // Rows U, V
+                else if (["U","V"].includes(row)) {
+                    if (seat >= 1 && seat <= 16)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 20)
+                        return "#00FF7F";
+                }
+            } //End of 113
+
+        // Section 114
+            else if(section === 114){
+                // Rows AA, BB, CC → seats 1–16 = #EF820D (Orange)
+                if ((row === "AA" || row === "BB" || row === "CC") && seat >= 1 && seat <= 16) {
+                    return "#EF820D";
+                }
+
+                // Rows DD, EE, FF → seats 1–16 = #E81933 (Red)
+                if ((row === "DD" || row === "EE" || row === "FF") && seat >= 1 && seat <= 16) {
+                    return "#E81933";
+                }
+
+                // Rows A, B, C
+                if (["A","B","C"].includes(row)) {
+                    if (seat >= 1 && seat <= 15)
+                        return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 4) || seat === 15 || seat === 16)
+                        return "#7600bc";
+                    else if (seat >= 5 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 3) || seat === 15 || seat === 16)
+                        return "#7600bc";
+                    else if (seat >= 4 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if (seat === 1 || seat === 2 || seat === 15 || seat === 16)
+                        return "#7600bc";
+                    else if (seat >= 3 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Rows G, H, J
+                else if (["G","H","J"].includes(row)) {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 16))
+                        return "#0014A8";
+                    else if (seat >= 3 && seat <= 6)
+                        return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if ([1,2,14,15].includes(seat))
+                        return "#728FCE";
+                    else if (seat >= 3 && seat <= 13)
+                        return "#FFFFFF";
+                }
+
+                // Row L
+                else if (row === "L") {
+                    if ((seat >= 1 && seat <= 3) || seat === 14 || seat === 15)
+                        return "#728FCE";
+                    else if (seat >= 4 && seat <= 13)
+                        return "#FFFFFF";
+                }
+
+                // Row M
+                else if (row === "M") {
+                    if ((seat >= 1 && seat <= 4) || seat === 14 || seat === 15)
+                        return "#728FCE";
+                    else if (seat >= 5 && seat <= 13)
+                        return "#FFFFFF";
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row)) {
+                    if (seat >= 1 && seat <= 10)
+                        return "#40e0d0";
+                }
+
+                // Rows R, S, T
+                else if (["R","S","T"].includes(row)) {
+                    if (seat >= 1 && seat <= 10)
+                        return "#00FF7F";
+                }
+
+                // Rows U, V
+                else if (["U","V"].includes(row)) {
+                    if (seat >= 1 && seat <= 14)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 18)
+                        return "#00FF7F";
+                }
+            } //End of 114
+        
+        // Section 115
+            else if(section === 115){
+                // Rows AA, BB, CC → seats 1–15 = #EF820D (Orange)
+                if ((row === "AA" || row === "BB" || row === "CC") && seat >= 1 && seat <= 15) {
+                    return "#EF820D";
+                }
+
+                // Rows DD, EE, FF → seats 1–15 = #E81933 (Red)
+                if ((row === "DD" || row === "EE" || row === "FF") && seat >= 1 && seat <= 15) {
+                    return "#E81933";
+                }
+
+                // Rows A, B, C
+                if (["A","B","C"].includes(row)) {
+                    if (seat >= 1 && seat <= 14)
+                        return "#fe019a";
+                }
+
+                // Rows D, E
+                else if (["D","E"].includes(row)) {
+                    if (seat === 1 || seat === 2 || seat === 15)
+                        return "#7600bc";
+                    else if (seat >= 3 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 15))
+                        return "#7600bc";
+                    else if (seat >= 3 && seat <= 6)
+                        return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat === 1 || seat === 2 || (seat >= 13 && seat <= 15))
+                        return "#0014A8";
+                    else if (seat >= 3 && seat <= 12)
+                        return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if (seat === 1 || seat === 2 || (seat >= 14 && seat <= 16))
+                        return "#0014A8";
+                    else if (seat >= 3 && seat <= 13)
+                        return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 16))
+                        return "#0014A8";
+                    else if (seat >= 3 && seat <= 6)
+                        return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 16))
+                        return "#728FCE";
+                    else if (seat >= 3 && seat <= 6)
+                        return "#FFFFFF";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat === 1 || seat === 2 || seat === 15 || seat === 16)
+                        return "#728FCE";
+                    else if (seat >= 3 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row)) {
+                    if (seat >= 1 && seat <= 11)
+                        return "#40e0d0";
+                }
+
+                // Row P
+                else if (row === "P") {
+                    if (seat >= 1 && seat <= 12)
+                        return "#40e0d0";
+                }
+
+                // Rows R, S, T
+                else if (["R","S","T"].includes(row)) {
+                    if (seat >= 1 && seat <= 12)
+                        return "#00FF7F";
+                }
+
+                // Rows U, V
+                else if (["U","V"].includes(row)) {
+                    if (seat >= 1 && seat <= 17)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 21)
+                        return "#00FF7F";
+                }
+            } //End of 115
+
+        // Section 116
+            else if(section === 116){
+                // Rows AA, BB
+                if (["AA","BB"].includes(row)) {
+                    if (seat >= 1 && seat <= 9)
+                        return "#EF820D";
+                }
+
+                // Row CC
+                else if (row === "CC") {
+                    if (seat >= 1 && seat <= 10)
+                        return "#EF820D";
+                }
+
+                // Rows DD, EE
+                else if (["DD","EE"].includes(row)) {
+                    if (seat >= 1 && seat <= 11)
+                        return "#E81933";
+                }
+
+                // Row FF
+                else if (row === "FF") {
+                    if (seat >= 1 && seat <= 12)
+                        return "#E81933";
+                }
+
+                // Row A
+                else if (row === "A") {
+                    if (seat >= 1 && seat <= 13)
+                        return "#fe019a";
+                }
+
+                // Row B
+                else if (row === "B") {
+                    if (seat >= 1 && seat <= 14)
+                        return "#fe019a";
+                }
+
+                // Row C
+                else if (row === "C") {
+                    if (seat >= 1 && seat <= 15)
+                        return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if (seat >= 1 && seat <= 15)
+                        return "#7600bc";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if (seat >= 1 && seat <= 16)
+                        return "#7600bc";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if (seat >= 1 && seat <= 17)
+                        return "#7600bc";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat >= 1 && seat <= 17)
+                        return "#0014A8";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if (seat >= 1 && seat <= 18)
+                        return "#0014A8";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat >= 1 && seat <= 19)
+                        return "#0014A8";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat >= 1 && seat <= 19)
+                        return "#728FCE";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat >= 1 && seat <= 20)
+                        return "#728FCE";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row)) {
+                    if (seat >= 1 && seat <= 16)
+                        return "#40e0d0";
+                }
+
+                // Row P
+                else if (row === "P") {
+                    if (seat >= 1 && seat <= 17)
+                        return "#40e0d0";
+                }
+
+                // Rows R, S
+                else if (["R","S"].includes(row)) {
+                    if (seat >= 1 && seat <= 18)
+                        return "#00FF7F";
+                }
+
+                // Row T
+                else if (row === "T") {
+                    if (seat >= 1 && seat <= 19)
+                        return "#00FF7F";
+                }
+
+                // Row U
+                else if (row === "U") {
+                    if (seat >= 1 && seat <= 22)
+                        return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 25)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 29)
+                        return "#00FF7F";
+                }
+            } //End of 116
+        
+        // Section 117
+            else if(section === 117){
+                // Rows AA, BB
+                if (["AA","BB"].includes(row)) {
+                    if (seat >= 1 && seat <= 3)
+                        return "#EF820D";
+                }
+
+                // Row CC
+                else if (row === "CC") {
+                    if (seat >= 1 && seat <= 4)
+                        return "#EF820D";
+                }
+
+                // Row DD
+                else if (row === "DD") {
+                    if (seat >= 1 && seat <= 5)
+                        return "#E81933";
+                }
+
+                // Rows EE, FF
+                else if (["EE","FF"].includes(row)) {
+                    if (seat >= 1 && seat <= 6)
+                        return "#E81933";
+                }
+
+                // Row A
+                else if (row === "A") {
+                    if (seat >= 1 && seat <= 7)
+                        return "#fe019a";
+                }
+
+                // Row B
+                else if (row === "B") {
+                    if (seat >= 1 && seat <= 8)
+                        return "#fe019a";
+                }
+
+                // Row C
+                else if (row === "C") {
+                    if (seat >= 1 && seat <= 11)
+                        return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if (seat >= 1 && seat <= 12)
+                        return "#7600bc";
+                }
+
+                // Rows E, F
+                else if (["E","F"].includes(row)) {
+                    if (seat >= 1 && seat <= 13)
+                        return "#7600bc";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat >= 1 && seat <= 14)
+                        return "#0014A8";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if (seat >= 1 && seat <= 15)
+                        return "#0014A8";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat >= 1 && seat <= 16)
+                        return "#0014A8";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat >= 1 && seat <= 16)
+                        return "#728FCE";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat >= 1 && seat <= 17)
+                        return "#728FCE";
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row)) {
+                    if (seat >= 1 && seat <= 11)
+                        return "#40e0d0";
+                }
+
+                // Row R
+                else if (row === "R") {
+                    if (seat >= 1 && seat <= 15)
+                        return "#00FF7F";
+                }
+
+                // Row S
+                else if (row === "S") {
+                    if (seat >= 1 && seat <= 16)
+                        return "#00FF7F";
+                }
+
+                // Rows T, U
+                else if (["T","U"].includes(row)) {
+                    if (seat >= 1 && seat <= 17)
+                        return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 24)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 27)
+                        return "#00FF7F";
+                }
+            } //End of 117
+
+        // Section 118
+            else if(section === 118){
+                // Row AA
+                if (row === "AA") {
+                    if (seat >= 1 && seat <= 6)
+                        return "#EF820D";
+                }
+
+                // Row BB
+                else if (row === "BB") {
+                    if (seat >= 1 && seat <= 7)
+                        return "#EF820D";
+                }
+
+                // Row CC
+                else if (row === "CC") {
+                    if (seat >= 1 && seat <= 8)
+                        return "#EF820D";
+                }
+
+                // Row DD
+                else if (row === "DD") {
+                    if (seat >= 1 && seat <= 8)
+                        return "#E81933";
+                }
+
+                // Row EE
+                else if (row === "EE") {
+                    if (seat >= 1 && seat <= 9)
+                        return "#E81933";
+                }
+
+                // Row FF
+                else if (row === "FF") {
+                    if (seat >= 1 && seat <= 10)
+                        return "#E81933";
+                }
+
+                // Row A
+                else if (row === "A") {
+                    if (seat >= 1 && seat <= 11)
+                        return "#fe019a";
+                }
+
+                // Row B
+                else if (row === "B") {
+                    if (seat >= 1 && seat <= 12)
+                        return "#fe019a";
+                }
+
+                // Row C
+                else if (row === "C") {
+                    if (seat >= 1 && seat <= 15)
+                        return "#fe019a";
+                }
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 3) || seat === 15)
+                        return "#7600bc";
+                    else if (seat >= 4 && seat <= 14)
+                        return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 3) || seat === 16)
+                        return "#7600bc";
+                    else if (seat >= 4 && seat <= 15)
+                        return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if ((seat >= 1 && seat <= 3) || seat === 17)
+                        return "#7600bc";
+                    else if (seat >= 4 && seat <= 16)
+                        return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if ((seat >= 1 && seat <= 3) || seat === 17)
+                        return "#0014A8";
+                    else if (seat >= 4 && seat <= 16)
+                        return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 9 && seat <= 18))
+                        return "#0014A8";
+                    else if (seat >= 4 && seat <= 8)
+                        return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 10 && seat <= 19))
+                        return "#0014A8";
+                    else if (seat >= 4 && seat <= 9)
+                        return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 10 && seat <= 19))
+                        return "#728FCE";
+                    else if (seat >= 4 && seat <= 9)
+                        return "#FFFFFF";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 10 && seat <= 20))
+                        return "#728FCE";
+                    else if (seat >= 4 && seat <= 9)
+                        return "#FFFFFF";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row)) {
+                    if (seat >= 1 && seat <= 16)
+                        return "#40e0d0";
+                }
+
+                // Row P
+                else if (row === "P") {
+                    if (seat >= 1 && seat <= 17)
+                        return "#40e0d0";
+                }
+
+                // Rows R, S
+                else if (["R","S"].includes(row)) {
+                    if (seat >= 1 && seat <= 18)
+                        return "#00FF7F";
+                }
+
+                // Row T
+                else if (row === "T") {
+                    if (seat >= 1 && seat <= 19)
+                        return "#00FF7F";
+                }
+
+                // Row U
+                else if (row === "U") {
+                    if (seat >= 1 && seat <= 20)
+                        return "#00FF7F";
+                }
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 1 && seat <= 23)
+                        return "#00FF7F";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 1 && seat <= 29)
+                        return "#00FF7F";
+                }
+            } //End of 118
+        
+        // Section 119
+            else if(section === 119){
+                // Rows AA, BB, CC
+                if (row === "AA" && seat >= 1 && seat <= 12) return "#EF820D";
+                else if (row === "BB" && seat >= 1 && seat <= 13) return "#EF820D";
+                else if (row === "CC" && seat >= 1 && seat <= 14) return "#EF820D";
+
+                // Rows DD, EE, FF
+                else if (row === "DD" && seat >= 1 && seat <= 14) return "#E81933";
+                else if (row === "EE" && seat >= 1 && seat <= 14) return "#E81933";
+                else if (row === "FF" && seat >= 1 && seat <= 15) return "#E81933";
+
+                // Rows A, B, C
+                else if (row === "A" && seat >= 1 && seat <= 16) return "#fe019a";
+                else if (["B","C"].includes(row) && seat >= 1 && seat <= 17) return "#fe019a";
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 8) || (seat >= 11 && seat <= 18)) return "#7600bc";
+                    else if (seat >= 9 && seat <= 10) return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 6) || (seat >= 13 && seat <= 18)) return "#7600bc";
+                    else if (seat >= 7 && seat <= 12) return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if ((seat >= 1 && seat <= 5) || (seat >= 15 && seat <= 19)) return "#7600bc";
+                    else if (seat >= 6 && seat <= 14) return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 16 && seat <= 19)) return "#0014A8";
+                    else if (seat >= 5 && seat <= 15) return "#FFFFFF";
+                }
+
+                // Rows H, J
+                else if (["H","J"].includes(row)) {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 18 && seat <= 20)) return "#0014A8";
+                    else if (seat >= 4 && seat <= 17) return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 18 && seat <= 20)) return "#728FCE";
+                    else if (seat >= 4 && seat <= 17) return "#FFFFFF";
+                }
+
+                // Row L
+                else if (row === "L") {
+                    if ((seat >= 1 && seat <= 4) || seat === 11 || (seat >= 18 && seat <= 21)) return "#728FCE";
+                    else if ((seat >= 5 && seat <= 10) || (seat >= 12 && seat <= 17)) return "#FFFFFF";
+                }
+
+                // Row M
+                else if (row === "M") {
+                    if ((seat >= 1 && seat <= 5) || (seat >= 10 && seat <= 12) || (seat >= 17 && seat <= 21)) return "#728FCE";
+                    else if ((seat >= 6 && seat <= 9) || (seat >= 13 && seat <= 16)) return "#FFFFFF";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row) && seat >= 1 && seat <= 17) return "#40e0d0";
+
+                // Row P
+                else if (row === "P" && seat >= 1 && seat <= 18) return "#40e0d0";
+
+                // Rows R, S
+                else if (["R","S"].includes(row) && seat >= 1 && seat <= 18) return "#00FF7F";
+
+                // Row T
+                else if (row === "T" && seat >= 1 && seat <= 19) return "#00FF7F";
+
+                // Row U
+                else if (row === "U" && seat >= 1 && seat <= 24) return "#00FF7F";
+
+                // Row V
+                else if (row === "V") {
+                    if (seat >= 6 && seat <= 24) return "#00FF7F";
+                    else if (seat >= 1 && seat <= 5) return "#FFFFFF";
+                }
+
+                // Row W
+                else if (row === "W") {
+                    if (seat >= 6 && seat <= 29) return "#00FF7F";
+                    else if (seat >= 1 && seat <= 5) return "#FFFFFF";
+                }
+            } //End of 119
+        
+        // Section 120
+            else if(section === 120){
+                // Rows AA, BB, CC
+                if (row === "AA" && seat >= 1 && seat <= 9) return "#EF820D";
+                else if (["BB","CC"].includes(row) && seat >= 1 && seat <= 10) return "#EF820D";
+
+                // Rows DD, EE, FF
+                else if (["DD","EE"].includes(row) && seat >= 1 && seat <= 11) return "#E81933";
+                else if (row === "FF" && seat >= 1 && seat <= 12) return "#E81933";
+
+                // Rows A, B, C
+                else if (row === "A" && seat >= 1 && seat <= 13) return "#fe019a";
+                else if (row === "B" && seat >= 1 && seat <= 14) return "#fe019a";
+                else if (row === "C" && seat >= 1 && seat <= 15) return "#fe019a";
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 6) || (seat >= 12 && seat <= 15)) return "#7600bc";
+                    else if (seat >= 7 && seat <= 11) return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 5) || (seat >= 14 && seat <= 16)) return "#7600bc";
+                    else if (seat >= 6 && seat <= 13) return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 15 && seat <= 17)) return "#7600bc";
+                    else if (seat >= 5 && seat <= 14) return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if ((seat >= 1 && seat <= 3) || seat === 9 || seat === 10 || (seat >= 16 && seat <= 17)) return "#0014A8";
+                    else if (seat >= 4 && seat <= 8 || seat >= 11 && seat <= 15) return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if ((seat >= 1 && seat <= 3) || (seat >= 9 && seat <= 11) || (seat >= 17 && seat <= 18)) return "#0014A8";
+                    else if (seat >= 4 && seat <= 8 || seat >= 12 && seat <= 16) return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 2 || (seat >= 9 && seat <= 12) || seat === 18 || seat === 19) return "#0014A8";
+                    else if ((seat >= 3 && seat <= 8) || (seat >= 13 && seat <= 17)) return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat === 1 || seat === 2 || (seat >= 8 && seat <= 12) || seat === 18 || seat === 19) return "#728FCE";
+                    else if ((seat >= 3 && seat <= 7) || (seat >= 13 && seat <= 17)) return "#FFFFFF";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat === 1 || seat === 2 || (seat >= 8 && seat <= 13) || seat === 19 || seat === 20) return "#728FCE";
+                    else if ((seat >= 3 && seat <= 7) || (seat >= 14 && seat <= 18)) return "#FFFFFF";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row) && seat >= 1 && seat <= 16) return "#40e0d0";
+
+                // Row P
+                else if (row === "P" && seat >= 1 && seat <= 17) return "#40e0d0";
+
+                // Rows R, S
+                else if (["R","S"].includes(row) && seat >= 1 && seat <= 18) return "#00FF7F";
+
+                // Row T
+                else if (row === "T" && seat >= 1 && seat <= 19) return "#00FF7F";
+
+                // Row U
+                else if (row === "U" && seat >= 1 && seat <= 22) return "#00FF7F";
+
+                // Row V
+                else if (row === "V" && seat >= 1 && seat <= 25) return "#00FF7F";
+
+                // Row W
+                else if (row === "W" && seat >= 1 && seat <= 29) return "#00FF7F";
+            } //End of 120
+
+        // Section 121
+            else if(section === 121){
+                // Rows AA, BB, CC
+                if (row === "AA" && seat >= 1 && seat <= 3) return "#EF820D";
+                else if (row === "BB" && seat >= 1 && seat <= 5) return "#EF820D";
+                else if (row === "CC" && seat >= 1 && seat <= 6) return "#EF820D";
+
+                // Rows DD, EE
+                else if (["DD","EE"].includes(row) && seat >= 1 && seat <= 7) return "#E81933";
+                else if (row === "FF" && seat >= 1 && seat <= 8) return "#E81933";
+
+                // Rows A, B, C
+                else if (row === "A" && seat >= 1 && seat <= 8) return "#fe019a";
+                else if (row === "B" && seat >= 1 && seat <= 9) return "#fe019a";
+                else if (row === "C" && seat >= 1 && seat <= 10) return "#fe019a";
+
+                // Row D
+                else if (row === "D") {
+                    if (seat === 1 || seat === 10) return "#7600bc";
+                    else if (seat >= 2 && seat <= 9) return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if (seat === 1 || seat === 11) return "#7600bc";
+                    else if (seat >= 2 && seat <= 10) return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if (seat === 1 || (seat >= 6 && seat <= 12)) return "#7600bc";
+                    else if (seat >= 2 && seat <= 5) return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat === 1 || seat === 11 || seat === 12) return "#0014A8";
+                    else if (seat >= 2 && seat <= 10) return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if (seat === 1 || seat === 2 || (seat >= 11 && seat <= 13)) return "#0014A8";
+                    else if (seat >= 3 && seat <= 10) return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 13)) return "#0014A8";
+                    else if (seat >= 3 && seat <= 6) return "#FFFFFF";
+                }
+
+                // Row K
+                else if (row === "K") {
+                    if (seat === 1 || seat === 2 || (seat >= 7 && seat <= 14)) return "#728FCE";
+                    else if (seat >= 3 && seat <= 6) return "#FFFFFF";
+                }
+
+                // Rows L, M
+                else if (["L","M"].includes(row)) {
+                    if (seat === 1 || seat === 2 || seat === 13 || seat === 14) return "#728FCE";
+                    else if (seat >= 3 && seat <= 12) return "#FFFFFF";
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row) && seat >= 1 && seat <= 11) return "#40e0d0";
+
+                // Row R
+                else if (row === "R" && seat >= 1 && seat <= 15) return "#00FF7F";
+
+                // Row S
+                else if (row === "S" && seat >= 1 && seat <= 16) return "#00FF7F";
+
+                // Rows T, U
+                else if (["T","U"].includes(row) && seat >= 1 && seat <= 17) return "#00FF7F";
+
+                // Row V
+                else if (row === "V" && seat >= 1 && seat <= 24) return "#00FF7F";
+
+                // Row W
+                else if (row === "W" && seat >= 1 && seat <= 27) return "#00FF7F";
+            } //End of 121
+        
+        // Section 122
+            else if(section === 122){
+                // Row CC
+                if (row === "CC" && seat >= 1 && seat <= 4) return "#EF820D";
+
+                // Rows DD
+                else if (row === "DD" && seat >= 1 && seat <= 4) return "#E81933";
+
+                // Rows EE, FF
+                else if (["EE","FF"].includes(row) && seat >= 1 && seat <= 6) return "#E81933";
+
+                // Rows A, B, C
+                else if (row === "A" && seat >= 1 && seat <= 10) return "#fe019a";
+                else if (["B","C"].includes(row) && seat >= 1 && seat <= 12) return "#fe019a";
+
+                // Rows D, E, F
+                else if (["D","E","F"].includes(row) && seat >= 1 && seat <= 12) return "#7600bc";
+
+                // Rows G, H, J
+                else if (["G","H","J"].includes(row) && seat >= 1 && seat <= 14) return "#0014A8";
+
+                // Rows K, L, M
+                else if (["K","L","M"].includes(row) && seat >= 1 && seat <= 14) return "#728FCE";
+
+                // Rows N, O
+                else if (["N","O"].includes(row) && seat >= 1 && seat <= 16) return "#40e0d0";
+
+                // Row P
+                else if (row === "P" && seat >= 1 && seat <= 17) return "#40e0d0";
+
+                // Rows R, S
+                else if (["R","S"].includes(row) && seat >= 1 && seat <= 18) return "#00FF7F";
+
+                // Row T
+                else if (row === "T" && seat >= 1 && seat <= 19) return "#00FF7F";
+
+                // Row U
+                else if (row === "U" && seat >= 1 && seat <= 22) return "#00FF7F";
+
+                // Row V
+                else if (row === "V" && seat >= 1 && seat <= 25) return "#00FF7F";
+
+                // Row W
+                else if (row === "W" && seat >= 1 && seat <= 29) return "#00FF7F";
+            } //End of 122
+
+        // Section 123
+            else if(section === 123){
+                // Rows AA, BB, CC → seats 1–14 = #EF820D (Orange)
+                if ((row === "AA" || row === "BB" || row === "CC") && seat >= 1 && seat <= 14) {
+                    return "#EF820D";
+                }
+
+                // Rows DD, EE, FF → seats 1–14 = #E81933 (Red)
+                if ((row === "DD" || row === "EE" || row === "FF") && seat >= 1 && seat <= 14) {
+                    return "#E81933";
+                }
+
+                // Rows A, B, C
+                if (["A","B","C"].includes(row) && seat >= 1 && seat <= 13) return "#fe019a";
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 9 && seat <= 13)) return "#7600bc";
+                    else if (seat >= 5 && seat <= 8) return "#FFFFFF";
+                }
+
+                // Rows E, F
+                else if (["E","F"].includes(row)) {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 10 && seat <= 14)) return "#7600bc";
+                    else if (seat >= 5 && seat <= 9) return "#FFFFFF";
+                }
+
+                // Rows G, H
+                else if (["G","H"].includes(row)) {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 10 && seat <= 14)) return "#0014A8";
+                    else if (seat >= 5 && seat <= 9) return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if (seat === 1 || seat === 14) return "#0014A8";
+                    else if (seat >= 2 && seat <= 13) return "#FFFFFF";
+                }
+
+                // Rows K, L, M
+                else if (["K","L","M"].includes(row)) {
+                    if (seat === 1 || seat === 14) return "#728FCE";
+                    else if (seat >= 2 && seat <= 13) return "#FFFFFF";
+                }
+
+                // Rows N, O
+                else if (["N","O"].includes(row) && seat >= 1 && seat <= 11) return "#40e0d0";
+
+                // Row P
+                else if (row === "P" && seat >= 1 && seat <= 12) return "#40e0d0";
+
+                // Rows R, S, T
+                else if (["R","S","T"].includes(row) && seat >= 1 && seat <= 12) return "#00FF7F";
+
+                // Rows U, V
+                else if (["U","V"].includes(row) && seat >= 1 && seat <= 17) return "#00FF7F";
+
+                // Row W
+                else if (row === "W" && seat >= 1 && seat <= 21) return "#00FF7F";
+            } //End of 123
+
+        // Section 124
+            else if(section === 124){
+                // Rows AA, BB, CC → seats 1–17 = #EF820D (Orange)
+                if ((row === "AA" || row === "BB" || row === "CC") && seat >= 1 && seat <= 17) {
+                    return "#EF820D";
+                }
+
+                // Rows DD, EE, FF → seats 1–17 = #E81933 (Red)
+                if ((row === "DD" || row === "EE" || row === "FF") && seat >= 1 && seat <= 17) {
+                    return "#E81933";
+                }
+
+                // Rows A, B, C
+                if (["A","B","C"].includes(row) && seat >= 1 && seat <= 16) return "#fe019a";
+
+                // Row D
+                else if (row === "D") {
+                    if ((seat >= 1 && seat <= 4) || (seat >= 7 && seat <= 10) || (seat >= 13 && seat <= 16)) return "#7600bc";
+                    else if (seat === 5 || seat === 6 || seat === 11 || seat === 12) return "#FFFFFF";
+                }
+
+                // Row E
+                else if (row === "E") {
+                    if ((seat >= 1 && seat <= 3) || seat === 8 || seat === 9 || (seat >= 14 && seat <= 16)) return "#7600bc";
+                    else if ((seat >= 4 && seat <= 7) || (seat >= 10 && seat <= 13)) return "#FFFFFF";
+                }
+
+                // Row F
+                else if (row === "F") {
+                    if (seat === 1 || seat === 2 || seat === 15 || seat === 16) return "#7600bc";
+                    else if (seat >= 3 && seat <= 14) return "#FFFFFF";
+                }
+
+                // Row G
+                else if (row === "G") {
+                    if (seat === 1 || seat === 2 || seat === 16) return "#0014A8";
+                    else if (seat >= 3 && seat <= 15) return "#FFFFFF";
+                }
+
+                // Row H
+                else if (row === "H") {
+                    if (seat === 1 || seat === 6 || seat === 11 || seat === 16) return "#0014A8";
+                    else if ((seat >= 2 && seat <= 5) || (seat >= 7 && seat <= 10) || (seat >= 12 && seat <= 15)) return "#FFFFFF";
+                }
+
+                // Row J
+                else if (row === "J") {
+                    if ([1,6,7,10,11,16].includes(seat)) return "#0014A8";
+                    else if ([2,3,4,5,8,9,12,13,14,15].includes(seat)) return "#FFFFFF";
+                }
+
+                // Rows K, L, M
+                else if (["K","L","M"].includes(row)) {
+                    if (seat >= 5 && seat <= 11) return "#728FCE";
+                    else if ((seat >= 1 && seat <= 4) || (seat >= 12 && seat <= 15)) return "#FFFFFF";
+                }
+
+                // Rows N, O, P
+                else if (["N","O","P"].includes(row) && seat >= 1 && seat <= 10) return "#40e0d0";
+
+                // Rows R, S, T
+                else if (["R","S","T"].includes(row) && seat >= 1 && seat <= 10) return "#00FF7F";
+
+                // Rows U, V
+                else if (["U","V"].includes(row) && seat >= 1 && seat <= 14) return "#00FF7F";
+
+                // Row W
+                else if (row === "W" && seat >= 1 && seat <= 18) return "#00FF7F";
+            } //End of 124
+
+  } // End of 100 level
+
+
+  // 200s, 300s, and 400s (all white)
+    if ((section >= 201 && section <= 224) || 
+        (section >= 301 && section <= 336) || 
+        (section >= 401 && section <= 436)) {
+        return "#FFFFFF";
+    }
+
+  // Fallback for anything else
+  return null; // <-- NO alert here!
+
+} // End of Function getColor()
+
+/* =========================
+   6️⃣ Update color preview
+========================= */
+function updatePreview(){
+  const section = sectionSelect.value;
+  const row     = rowSelect.value;
+  const seat    = seatSelect.value;
+
+  // Only preview if necessary selections are made
+  if (!section) return;
+  if (section !== "GA1" && section !== "GA2" && (!row || !seat)) return;
+
+  const color = getColor(section, row, seat);
+  if (color) previewDiv.style.backgroundColor = color;
+  else previewDiv.style.backgroundColor = "transparent"; // or keep previous
+}
+
+function submitToGoogleForm(section, row, seat) {
+
+  const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScrCNn8pZy-ZWN7Bc8OjQpo9sJlEYX7Uir754h1sCWKSyiVcg/formResponse";
+
+  const formData = new FormData();
+  formData.append("entry.823990529", section);
+  formData.append("entry.1267388516", row);
+  formData.append("entry.1065420165", seat);
+
+  fetch(formUrl, {
+    method: "POST",
+    mode: "no-cors",
+    body: formData
+  });
+
+}
+
+/* =========================
+   7️⃣ Download color image
+========================= */
+function downloadColor(){
+  const section = sectionSelect.value;
+  const row     = rowSelect.value;
+  const seat    = seatSelect.value;
+
+  if(!section){
+    alert("Please select Section!");
+    return;
+  }
+
+  if(section !== "GA1" && section !== "GA2" && (!row || !seat)){
+    alert("Please select Row and Seat!");
+    return;
+  }
+
+  const color = getColor(section, row, seat);
+
+  if(!color){
+    alert("Sorry:( This section doesn't have a colour assigned.");
+    return;
+  }
+
+  // ✅ NEW: Confirmation step before generating image
+  const confirmationMessage =
+    (section === "GA1" || section === "GA2")
+      ? `You selected Section ${section}.\n\nProceed with download?`
+      : `You selected:\nSection ${section}\nRow ${row}\nSeat ${seat}\n\nPlease confirm this is correct before downloading.`;
+
+  if(!confirm(confirmationMessage)){
+    return; // User cancelled — stop here
+  }
+
+  // Create canvas
+  const canvas = document.createElement("canvas");
+  canvas.width = 1080;
+  canvas.height = 1920;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const link = document.createElement("a");
+  link.download = `light-${section}-${row}-${seat}.png`;
+  link.href = canvas.toDataURL("image/png");
+
+  // Trigger download
+  link.click();
+
+  // 🔹 Log AFTER download is triggered
+  submitToGoogleForm(section, row, seat);
+}
+
+/* =========================
+   8️⃣ Event listeners
+========================= */
+
+// When section changes
+sectionSelect.addEventListener("change", function() {
+  populateRowsAndSeats();
+
+  if (sectionSelect.value === "GA1" || sectionSelect.value === "GA2") {
+    rowSelect.disabled = true;
+    seatSelect.disabled = true;
+  } else {
+    rowSelect.disabled = false;   // unlock row
+    seatSelect.disabled = true;   // keep seat locked
+  }
+
+  updatePreview();
+});
+
+// When row changes
+rowSelect.addEventListener("change", function() {
+  if (rowSelect.value) {
+    seatSelect.disabled = false;  // unlock seat
+  } else {
+    seatSelect.disabled = true;
+  }
+
+  updatePreview();
+});
+
+// When seat changes
+seatSelect.addEventListener("change", updatePreview);
+
+/* Populate initially */
+populateRowsAndSeats();
+
+</script>
+</body>
+</html>
