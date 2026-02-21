@@ -228,9 +228,15 @@ function populateRowsAndSeats(){
 
   // Decide which row set to use
   let rows = [];
+
   if (section >= 101 && section <= 124) rows = lowerLevelRows || [];
+
   else if (section >= 201 && section <= 224) rows = clubRows || [];
-  else if ((section >= 301 && section <= 336) || (section >= 401 && section <= 436)) rows = upperRows || [];
+
+  else if ((section >= 301 && section <= 336) || (section >= 401 && section <= 436)) rows = level300Rows || [];
+
+  else if((section >= 401 && section <= 436)) rows = level400Rows || [];
+  
   else if (section >= 501) rows = floorRows || [];
 
   // Add default "Choose a row" for rows
