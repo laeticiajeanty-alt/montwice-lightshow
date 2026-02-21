@@ -160,7 +160,7 @@ for(let i=401;i<=436;i++) addOption(sectionSelect,i);
    2️⃣ Generate Rows
 ========================= */
 
-// Helper function for 100 level single-letter rows
+// Helper function for letter rows
 function generateLetterRows(start, end, skipLetters = []) {
   const rows = [];
   let startCode = start.charCodeAt(0);
@@ -179,13 +179,14 @@ const rowsAA_FF = generateLetterRows('A','F', ['I','Q']).map(r => r + r);
 const rowsA_W = generateLetterRows('A','W', ['I','Q']);
 const lowerLevelRows = [...rowsAA_FF, ...rowsA_W];
 
-// 200 Level: 1-6
-const clubRows = [];
-for(let i=1;i<=6;i++) clubRows.push(String(i));
+// 200 Level: A-F (skip I and Q)
+const clubRows = generateLetterRows('A','F', ['I','Q']);
 
-// 300/400 Level: 1-20
-const upperRows = [];
-for(let i=1;i<=20;i++) upperRows.push(String(i));
+// 300 Level: A-O (skip I and Q)
+const level300Rows = generateLetterRows('A','O', ['I','Q']);
+
+// 400 Level: A-O (skip I and Q)
+const level400Rows = generateLetterRows('A','O', ['I','Q']);
 
 // Floor rows: A-Z + AA-ZZ (~50), skip I and Q
 const validLetters = generateLetterRows('A','Z', ['I','Q']);
