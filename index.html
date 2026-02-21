@@ -2701,10 +2701,10 @@ function submitToGoogleForm(section, row, seat) {
 
   const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScrCNn8pZy-ZWN7Bc8OjQpo9sJlEYX7Uir754h1sCWKSyiVcg/formResponse";
 
-  const formData = new FormData();
-  formData.append("entry.823990529", section);
-  formData.append("entry.1267388516", row);
-  formData.append("entry.1065420165", seat);
+  const data = new URLSearchParams();
+  data.append("entry.823990529", section);
+  data.append("entry.1267388516", row);
+  data.append("entry.1065420165", seat);
 
   fetch(formUrl, {
     method: "POST",
