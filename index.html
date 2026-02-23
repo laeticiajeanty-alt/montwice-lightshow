@@ -2765,6 +2765,14 @@ function downloadColor(){
     return; // User cancelled — stop here
   }
 
+  const disclaimer = document.getElementById("whiteDisclaimer");
+
+    if (color === "#FFFFFF") {
+        disclaimer.style.display = "block";
+    } else {
+        disclaimer.style.display = "none";
+    }
+
   // Create canvas
   const canvas = document.createElement("canvas");
   canvas.width = 1080;
