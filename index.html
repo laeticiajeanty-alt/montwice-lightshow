@@ -70,6 +70,13 @@
       cursor: pointer;
     }
 
+    .disclaimer {
+        color: #d32f2f;
+        font-style: italic;
+        margin-top: 10px;
+        font-size: 14px;
+    }
+
     .instructions {
       max-width: 500px;
       margin: 20px auto;
@@ -117,6 +124,10 @@
 
       <br>
       <button onclick="downloadColor()">Download My Colour</button>
+
+      <p id="whiteDisclaimer" class="disclaimer" style="display: none;">
+        Please note that having a white colour is normal. It is Dahyun’s colour.
+      </p>
     </div>
 
     <div class="Issues/Inquiries">
@@ -236,8 +247,6 @@ function populateRowsAndSeats(){
   else if ((section >= 301 && section <= 336) || (section >= 401 && section <= 436)) rows = level300Rows || [];
 
   else if((section >= 401 && section <= 436)) rows = level400Rows || [];
-  
-  else if (section >= 501) rows = floorRows || [];
 
   // Add default "Choose a row" for rows
   const defaultRow = document.createElement("option");
@@ -840,7 +849,7 @@ function getColor(section, row, seat){
                 }
             } // End of Section 106
         //Section 107
-            else if (section === 106){
+            else if (section === 107){
                 // Rows B, C
                 if (["B","C"].includes(row)) {
                     if (seat >= 1 && seat <= 17) return "#fe019a";
