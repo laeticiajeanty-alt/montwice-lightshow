@@ -242,7 +242,20 @@ function populateRowsAndSeats(){
   // Decide which row set to use
   let rows = [];
 
-  if (section >= 101 && section <= 124) rows = lowerLevelRows || [];
+  if (section >= 101 && section <= 124) {
+
+  rows = [...lowerLevelRows];
+
+  // Sections that replace N, O, P
+  if (["105","107","109","117","121"].includes(section)) {
+
+    // Remove N, O, P
+    rows = rows.filter(r => !["N","O","P"].includes(r));
+
+    // Add FR and ACC
+    rows.push("FR","ACC");
+  }
+}
 
   else if (section >= 201 && section <= 224) rows = clubRows || [];
 
