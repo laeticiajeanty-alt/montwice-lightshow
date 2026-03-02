@@ -701,9 +701,18 @@ function getColor(section, row, seat){
                 if(seat >=1 && seat <=17) return "#728FCE";
             }
 
-            // Rows N, O, P
-            else if(["N","O","P"].includes(row)){
-                if(seat >=1 && seat <=12) return "#40e0d0";
+            // Accessibility Rows (FR/ACC)
+            else if (["FR","ACC"].includes(row)) {
+                if (seat >= 1 && seat <= 11) {
+                    // FR = odd seats
+                    if (row === "FR" && seat % 2 === 1) {
+                        return "#40e0d0";
+                    }
+                    // ACC = even seats
+                    if (row === "ACC" && seat % 2 === 0) {
+                        return "#40e0d0";
+                    }
+                }
             }
 
             // Rows R, S
