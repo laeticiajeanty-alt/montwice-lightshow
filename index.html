@@ -300,6 +300,16 @@ function getColor(section, row, seat){
   section = parseInt(section);  // "101" -> 101
   seat = parseInt(seat);        // "1" -> 1
 
+  /* =========================
+     🔹 Accessibility Rows FIRST
+  ========================== */
+  const accessibilitySections = [105, 107, 109, 117, 121];
+  if(accessibilitySections.includes(section) && ["FR","ACC"].includes(row)){
+      if(seat >= 1 && seat <= 11){
+          return "#40e0d0"; // turquoise
+      }
+  }
+
   // 100 Level
 
   //Section 101 - 124
