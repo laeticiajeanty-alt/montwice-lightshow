@@ -981,7 +981,7 @@ function getColor(section, row, seat){
 
                 // Accessibility Rows (FR/ACC)
                 else if (["FR","ACC"].includes(row)) {
-                    if (seat >= 1 && seat <= 11) {
+                    if (seat >= 1 && seat <= 14) {
                         // FR = odd seats
                         if (row === "FR" && seat % 2 === 1) {
                             return "#40e0d0";
